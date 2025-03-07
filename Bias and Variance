@@ -1,13 +1,10 @@
-# import libraries
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.io import loadmat
 
-# load data and see data.keys
 data = loadmat('project6data1.mat')
 print(data.keys())
 
-# define X , Y , m , and others
 X = data['X']
 X_val = data['Xval']
 X_test = data['Xtest']
@@ -16,170 +13,202 @@ Y_val = data['yval']
 Y_test = data['ytest']
 m = X.shape[0]
 m_val = X_val.shape[0]
-m_test  = X_test.shape[0]
+m_test = X_test.shape[0]
 
-# plot the data
 plt.plot(X, Y, 'ro', ms=10, mec='k')
-
-# define transpose on X , Y and add bias to X
 X_ = X.T
 X_val_ = X_val.T
 X_test_ = X_test.T
 Y_ = Y.T
 Y_val_ = Y_val.T
 Y_test_ = Y_test.T
-X_ = np.concatenate([np.ones((1,m)), X_] , axis = 0)
-X_val_ = np.concatenate([np.ones((1,m_val)), X_val_] , axis = 0)
-X_test_ = np.concatenate([np.ones((1,m_test)), X_test_] , axis = 0)
+X_ = np.concatenate([np.ones((1, m)), X_], axis=0)
+X_val_ = np.concatenate([np.ones((1, m_val)), X_val_], axis=0)
+X_test_ = np.concatenate([np.ones((1, m_test)), X_test_], axis=0)
 
-# define compute cost with reg function
-def computeCostWithReg(X , Y , thetatemp , lambda_):
-    m = X.shape[1]
-    temp = np.matmul(thetatemp.T , X) - Y
-    cost = (1/(2*m)) * np.matmul(temp , temp.T)
-    reg = (lambda_ / (2*m)) * np.matmul(thetatemp[1:].T , thetatemp[1:])
+def computeCostWithReg(X_, Y_, thetatemp, lambda_):
+    m = X_.shape[1]
+    temp = np.matmul(thetatemp.T, X_) - Y_
+    cost = (1/(2*m)) * np.matmul(temp, temp.T)
+    reg = (lambda_ / (2*m)) * np.matmul(thetatemp[1:].T, thetatemp[1:])
     costWithReg = cost + reg
-    return costWithReg
+    return costWithReg.item()
 
-# compute initial cost for data
-#theta = np.ones((X_.shape[0] , 1))
-theta = np.random.randn(X_.shape[0], 1) * 0.01  # مقداردهی اولیه تصادفی کوچک
-costWithReg = computeCostWithReg (X_ , Y_ , theta , lambda_=1)
-print("initial cost is:", costWithReg)
-
-# define gradiend descent function
-def gradientDescentWithReg(X , Y , thetatemp , lr , epochs , lambda_):
-    m = X.shape[1]
+def gradientDescentWithReg(X_, Y_, thetatemp, lr, epochs, lambda_):
+    m = X_.shape[1]
     J_history = []
-    tolerance = 0.00001
+    grad = np.zeros_like(thetatemp)
     for epoch in range(epochs):
         thetatempreg = thetatemp.copy()
         thetatempreg[0,0] = 0
-        h = np.matmul (thetatemp.T , X)
-        temp = (h-Y).T
-        thetatemp = thetatemp - (lr/m) * (np.matmul(X , temp) + lambda_ * thetatempreg)
-        if (epoch==0):
-            grad = (1/m) * (np.matmul(X , temp) + lambda_ * thetatempreg)
-        J_history.append(computeCostWithReg(X , Y , thetatemp , lambda_))
-        
-        if epoch > 0 and abs(J_history[-1] - J_history[-2]) < tolerance:
-            print(f"Early stopping at epoch {epoch}, Cost change: {abs(J_history[-1] - J_history[-2])}")
-            break
+        h = np.matmul(thetatemp.T, X_)
+        temp = (h - Y_).T
+        thetatemp = thetatemp - (lr/m) * (np.matmul(X_, temp) + lambda_ * thetatempreg)
+        if (epoch == 0):
+            grad = (1/m) * (np.matmul(X_, temp) + lambda_ * thetatempreg)
+        J_history.append(computeCostWithReg(X_, Y_, thetatemp, lambda_))
+    return thetatemp, J_history, grad
 
-    return thetatemp , J_history , grad
-
-# Plot fit over the data
-plt.plot(X_[1:, :], Y_, 'ro', ms=10, mec='k', mew=1.5)
+theta = np.random.randn(X_.shape[0], 1) * 0.01
+epochs = 100000  # تنظیم epochs به 100000
+lr = 0.001
+thetanew, J_history, gradtest = gradientDescentWithReg(X_, Y_, theta, lr, epochs, lambda_=1)
+print(f'Gradtest is: {gradtest}')
+print(f'Last cost is: {J_history[-1]}')
+plt.plot(X_[1:, :].T, Y_.T, 'ro', ms=10, mec='k', mew=1.5)
 plt.xlabel('Change in water level (x)')
 plt.ylabel('Water flowing out of the dam (y)')
-plt.plot(X_[1,:], np.matmul(thetanew.T, X_)[0,:], '--', lw=2);
+plt.plot(X_[1:, :].T, np.matmul(thetanew.T, X_).T, '--', lw=2)
+plt.show()
 
-# define learning curve to show the effect of m on the error and see if we have high bias or high variance problem
-def learningCurve(X, Y, X_val, Y_val, lambda_):
-    m = X.shape[1]
+def learningCurve(X_, Y_, X_val_, Y_val_, gradientDescentWithReg, computeCostWithReg, lambda_):
+    m = X_.shape[1]
     train_error = np.zeros(m)
     val_error = np.zeros(m)
-    for i in range (1,m+1):
-        theta = np.random.randn(X.shape[0] , 1) * 0.01
-        epochs = 10000
+    for i in range(1, m+1):
+        theta = np.random.randn(X_.shape[0], 1) * 0.01
+        epochs = 100000  # تنظیم epochs به 100000
         lr = 0.001
-        thetanew , J_history , gradtest = gradientDescentWithReg(X[:,:i] , Y[:,:i] , theta , lr , epochs , lambda_=1)
-        train_error[i-1] = computeCostWithReg(X[:,:i] , Y[:,:i] ,thetanew , lambda_=0)
-        val_error[i-1] = computeCostWithReg(X_val , Y_val ,thetanew , lambda_=0)
-    return train_error , val_error
+        thetanew, J_history, gradtest = gradientDescentWithReg(X_[:, :i], Y_[:, :i], theta, lr, epochs, lambda_=1)
+        train_error[i-1] = computeCostWithReg(X_[:, :i], Y_[:, :i], thetanew, lambda_=0)
+        val_error[i-1] = computeCostWithReg(X_val_, Y_val_, thetanew, lambda_=0)
+    return train_error, val_error
 
-J_train, J_cv = learningCurve(X_, Y_, X_val_, Y_val_, lambda_=1)
-
-# now plot the J_train and J_cv
-plt.plot(np.arange(1, m+1), J_train, np.arange(1, m+1), J_cv, lw=2)
-plt.title('Learning curve for linear regression')
-plt.legend(['Train', 'Cross Validation'])
-plt.xlabel('Number of training examples')
+train_error, val_error = learningCurve(X_, Y_, X_val_, Y_val_, gradientDescentWithReg, computeCostWithReg, lambda_=1)
+plt.figure()
+plt.plot(range(1, m+1), train_error, label='Training Error')
+plt.plot(range(1, m+1), val_error, label='Validation Error')
+plt.xlabel('Number of Training Examples')
 plt.ylabel('Error')
-plt.axis([0, 13, 0, J_cv[np.argmax(J_cv)] * 1.2])
+plt.title('Learning Curve')
+plt.legend()
+plt.grid(True)
 
 print('# Training Examples\tTrain Error\tCross Validation Error')
 for i in range(m):
-    print('  \t%d\t\t%f\t%f' % (i+1, J_train[i], J_cv[i]))
+    print('  \t%d\t\t%f\t%f' % (i+1, train_error[i], val_error[i]))
 
-# define ploynomial maker function
+plt.show()
+
 def polyFeatures(X, d):
     X_poly = np.zeros((X.shape[0], d))
     for i in range(d):
         X_poly[:, i] = X[:, 0] ** (i + 1)
     return X_poly
 
-X_poly = polyFeatures(X, 8)
-X_poly_val = polyFeatures(X_val, 8)
-X_poly_test = polyFeatures(X_test, 8)
-
-# normalize the polynomials
 def featureNormalize(X, method="range"):
     X_norm = X.copy()
     if method == "range":
         mean = np.mean(X_norm, axis=0)
         range1 = np.max(X_norm, axis=0) - np.min(X_norm, axis=0)
+        range1[range1 == 0] = 1
         X_norm = (X_norm - mean) / range1
         return X_norm, mean, range1
     elif method == "std":
         mean = np.mean(X_norm, axis=0)
         std = np.std(X_norm, axis=0)
+        std[std == 0] = 1
         X_norm = (X_norm - mean) / std
         return X_norm, mean, std
 
-# normalize with std
-X_poly_norm, mean, std = featureNormalize(X_poly , method = 'std')
-X_poly_normv = X_poly_val - mean
-X_poly_normv /= std
+def optimumDegree(X, Y_, X_val, Y_val_, X_test, Y_test_, degree, polyFeatures, featureNormalize, costfunction, gradientDescentWithReg):
+    thetanew = []
+    J_history = []
+    gradtest = []
+    m = X.shape[0]
+    m_val = X_val.shape[0]
+    m_test = X_test.shape[0]
+    best_degree = 1
+    best_error_val = float('inf')
+    for i in range(1, degree + 1):
+        X_poly = polyFeatures(X, i)
+        X_poly_val = polyFeatures(X_val, i)
+        X_poly_test = polyFeatures(X_test, i)
+        
+        X_poly_norm, mean, range1 = featureNormalize(X_poly, method='range')
+        X_poly_normv = (X_poly_val - mean) / range1
+        X_poly_normt = (X_poly_test - mean) / range1
+        
+        X_poly_norm_ = X_poly_norm.T
+        X_poly_normv_ = X_poly_normv.T
+        X_poly_normt_ = X_poly_normt.T
+        X_poly_norm_ = np.concatenate([np.ones((1, m)), X_poly_norm_], axis=0)
+        X_poly_normv_ = np.concatenate([np.ones((1, m_val)), X_poly_normv_], axis=0)
+        X_poly_normt_ = np.concatenate([np.ones((1, m_test)), X_poly_normt_], axis=0)
 
-#Convert dimension of input data from (m, n) to (n, m) and add bias
+        theta = np.random.randn(X_poly_norm_.shape[0], 1) * 0.01
+        epochs = 100000  # تنظیم epochs به 100000
+        lr = 0.003
+        thetanew_temp, J_history_temp, gradtest_temp = gradientDescentWithReg(X_poly_norm_, Y_, theta, lr, epochs, lambda_=0)
+        thetanew.append(thetanew_temp)
+        J_history.append(J_history_temp)
+        gradtest.append(gradtest_temp)
+        
+        val_error = costfunction(X_poly_normv_, Y_val_, thetanew_temp, lambda_=0)
+        print(f"Degree: {i}, Validation Error: {val_error}")
+        if val_error < best_error_val:
+            best_error_val = val_error
+            best_degree = i
+        
+    return best_degree, best_error_val, thetanew, J_history, gradtest
+
+best_degree, best_error_val, thetanew, J_history, gradtest = optimumDegree(
+    X, Y_, X_val, Y_val_, X_test, Y_test_,
+    degree=8, polyFeatures=polyFeatures, featureNormalize=featureNormalize,
+    costfunction=computeCostWithReg, gradientDescentWithReg=gradientDescentWithReg
+)
+print(f'Best degree is: {best_degree}')
+print(f'Validation Error for best degree: {best_error_val}')
+
+X_poly = polyFeatures(X, best_degree)
+X_poly_ = X_poly.T
+X_val_poly = polyFeatures(X_val, best_degree)
+X_val_poly_ = X_val_poly.T
+X_test_poly = polyFeatures(X_test, best_degree)
+X_test_poly_ = X_test_poly.T
+
+X_poly_norm, x_mean, range1 = featureNormalize(X_poly, method='range')
 X_poly_norm_ = X_poly_norm.T
-X_poly_normv_ = X_poly_normv.T
-X_poly_normt_ = X_poly_normt.T
-X_poly_norm_ = np.concatenate([np.ones((1, m)), X_poly_norm_], axis=0)
-X_poly_normv_ = np.concatenate([np.ones((1, m_val)), X_poly_normv_], axis=0)
-X_poly_normt_ = np.concatenate([np.ones((1, m_test)), X_poly_normt_], axis=0)
+X_poly_ = np.concatenate([np.ones((1, m)), X_poly_norm_], axis=0)
+X_val_poly_norm = (X_val_poly - x_mean) / range1
+X_val_poly_norm_ = X_val_poly_norm.T
+X_val_poly_ = np.concatenate([np.ones((1, m_val)), X_val_poly_norm_], axis=0)
+X_test_poly_norm = (X_test_poly - x_mean) / range1
+X_test_poly_norm_ = X_test_poly_norm.T
+X_test_poly_ = np.concatenate([np.ones((1, m_test)), X_test_poly_norm_], axis=0)
 
-# gradient descent with reg on polynomial data
-theta = np.random.randn(X_poly_norm_.shape[0], 1) * 0.01
-epochs = 10000
-lr = 0.003
-#run gradientDescent and print theta and last cost
-thetanew, J_history, gradtest = gradientDescentWithReg(X_poly_norm_, Y_, theta, lr, epochs, lambda_=0)
-#print first epoch grad
-print(gradtest)
-#print last cost >>> J_history[-1]
-print("last cost: ", J_history[-1])
+def valCurve(X_poly_, Y_, X_val_poly_, Y_val_, computeCostWithReg, gradientDescentWithReg):
+    lambda_vec = [0, 0.01, 0.03, 0.05, 0.1, 0.2, 0.3, 0.5, 1]
+    error_train = np.zeros(len(lambda_vec))
+    error_val = np.zeros(len(lambda_vec))
 
-# Plot fit the polyfeatures
-def plotFit(polyFeatures, min_x, max_x, mean, std, theta, p, X_train, Y_train):
-    # ایجاد مقادیر x برای رسم خط فیت
-    x = np.arange(min_x - 15, max_x + 25, 0.1).reshape(-1, 1)  # گام کوچک‌تر برای خط صاف‌تر
-    X_poly = polyFeatures(x, p)
-    X_poly -= mean
-    X_poly /= std
-    X_poly = X_poly.T
-    X_poly = np.concatenate([np.ones((1, X_poly.shape[1])), X_poly], axis=0)
-    
-    # رسم نمودار
-    plt.figure(figsize=(10, 6))  # اندازه بزرگ‌تر برای وضوح
-    plt.scatter(X_train[1:, :].flatten(), Y_train.flatten(), color='red', marker='o', s=100, edgecolors='black', label='Training Data')
-    plt.plot(x, np.matmul(theta.T, X_poly)[0, :], 'green', lw=2, linestyle='-', label='Polynomial Fit')
-    
-    # اصلاح محدوده محورها با استفاده از مقادیر اسکالر
-    plt.ylim(np.min(Y_train.flatten()) - 5, np.max(Y_train.flatten()) + 5)  # محدوده محور y
-    plt.xlim(min_x - 20, max_x + 30)  # محدوده بهتر برای محور x
-    
-    plt.xlabel('Change in water level (x)')
-    plt.ylabel('Water flowing out of the dam (y)')
-    plt.legend(fontsize=12)  # لجند با فونت بزرگ‌تر
-    plt.grid(True, linestyle='--', alpha=0.7)  # اضافه کردن Grid
-    plt.title('Polynomial Fit on Water Flow Data', fontsize=14)  # عنوان اضافه
+    for i in range(len(lambda_vec)):
+        theta1 = np.random.randn(X_poly_.shape[0], 1) * 0.01
+        epochs = 100000  # تنظیم epochs به 100000
+        lr = 0.003
+        thetanew1, J_history, gradtest = gradientDescentWithReg(X_poly_, Y_, theta1, lr, epochs, lambda_=lambda_vec[i])
+        error_train[i] = computeCostWithReg(X_poly_, Y_, thetanew1, lambda_=0)
+        error_val[i] = computeCostWithReg(X_val_poly_, Y_val_, thetanew1, lambda_=0)
+        print(f"lambda = {lambda_vec[i]}:")
+        print(f"train error: {error_train[i]}")
+        print(f"val error: {error_val[i]}")
+        print(f"J_history[-1]: {J_history[-1]}\n")
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(lambda_vec, error_train, label='Train Error', color='blue', linestyle='-', marker='o', markersize=8, linewidth=2)
+    plt.plot(lambda_vec, error_val, label='Validation Error', color='red', linestyle='--', marker='s', markersize=8, linewidth=2)
+    plt.xlabel('Lambda', fontsize=14)
+    plt.ylabel('Error', fontsize=14)
+    plt.title('Validation Curve for Different Lambda Values', fontsize=16, pad=15)
+    plt.legend(fontsize=12)
+    plt.grid(True, ls="--", lw=0.5)
+    plt.tick_params(axis='both', which='major', labelsize=12)
     plt.show()
 
-# فراخوانی تابع با داده‌های فعلی (بعد از تعریف thetanew)
-# مطمئن شو که thetanew از قبل با gradientDescentWithReg محاسبه شده باشه
-min_x = np.min(X_[1, :])
-max_x = np.max(X_[1, :])
-plotFit(polyFeatures, min_x, max_x, mean, std, thetanew, 8, X_, Y_)
+    print('# Lambda\t\tTrain Error\tValidation Error')
+    for i in range(len(lambda_vec)):
+        print('  \t%.4f\t\t%.6f\t%.6f' % (lambda_vec[i], error_train[i], error_val[i]))
 
+    return error_train, error_val
+
+train_errors, val_errors = valCurve(X_poly_, Y_, X_val_poly_, Y_val_, computeCostWithReg, gradientDescentWithReg)
