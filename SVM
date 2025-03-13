@@ -12,9 +12,6 @@ np.random.seed(42)
 # ----------------------------------------------
 # Part 1: Linear SVM on project7data1.mat
 # ----------------------------------------------
-# This section loads the first dataset and trains a linear SVM classifier.
-# It visualizes the data points and the decision boundary.
-
 def plot_linear_svm():
     """Train and plot a linear SVM on project7data1.mat dataset."""
     # Load dataset
@@ -56,9 +53,6 @@ def plot_linear_svm():
 # ----------------------------------------------
 # Part 2: RBF SVM on project7data2.mat
 # ----------------------------------------------
-# This section applies an RBF kernel SVM with feature scaling and visualizes
-# the decision boundary using a contour plot.
-
 def plot_rbf_svm():
     """Train and plot an RBF SVM on project7data2.mat dataset."""
     # Load dataset
@@ -110,9 +104,6 @@ def plot_rbf_svm():
 # ----------------------------------------------
 # Part 3: RBF SVM with Validation on project7data3.mat
 # ----------------------------------------------
-# This section trains an RBF SVM on a training set and validates it using a
-# validation set. It also performs manual hyperparameter tuning.
-
 def validate_rbf_svm():
     """Train, validate, and tune RBF SVM on project7data3.mat dataset."""
     # Load dataset
@@ -149,9 +140,40 @@ def validate_rbf_svm():
             accuracy.append(acc)
             print(f"Accuracy with C={C_}, gamma={gamma_}: {acc:.4f}")
 
-    # Train final model with selected parameters (example: C=1, gamma=100)
-    clf = svm.SVC(kernel='rbf', C=1, gamma=100)
+    # Find the best parameters from manual tuning
+    max_index = np.argmax(accuracy)  # Index of the maximum accuracy
+    max_acc = accuracy[max_index]
+    n_gamma = len(gamma_selection)
+    best_C_index = max_index // n_gamma
+    best_gamma_index = max_index % n_gamma
+    best_C = C_selection[best_C_index]
+    best_gamma = gamma_selection[best_gamma_index]
+    print(f"Best manual parameters: C={best_C}, gamma={best_gamma}, Accuracy: {max_acc:.4f}")
+
+    # Train final model with best manual parameters
+    clf = svm.SVC(kernel='rbf', C=best_C, gamma=best_gamma)
     clf.fit(X_train, Y_train[:, 0])
+    print(f"Validation accuracy with best manual parameters: {clf.score(X_val, Y_val[:, 0]):.4f}")
+
+    # Contour plot for the best model
+    h = 0.01
+    x_min, x_max = X_train[:, 0].min(), X_train[:, 0].max()
+    y_min, y_max = X_train[:, 1].min(), X_train[:, 1].max()
+    xx, yy = np.meshgrid(np.arange(x_min, x_max, h), np.arange(y_min, y_max, h))
+
+    Z = clf.predict(np.c_[xx.ravel(), yy.ravel()])
+    Z = Z.reshape(xx.shape)
+
+    # Plot decision boundary and training points
+    plt.figure(figsize=(8, 6))
+    plt.contourf(xx, yy, Z, cmap=plt.cm.coolwarm, alpha=0.8)
+    plt.scatter(X_train[:, 0], X_train[:, 1], c=Y_train[:, 0], cmap=plt.cm.coolwarm, edgecolors='k')
+    plt.xlabel('Feature 1')
+    plt.ylabel('Feature 2')
+    plt.xlim(xx.min(), xx.max())
+    plt.ylim(yy.min(), yy.max())
+    plt.title(f"RBF SVM Decision Boundary (C={best_C}, gamma={best_gamma}) on Dataset 3")
+    plt.show()
 
     # GridSearchCV for comparison
     param_grid = {'C': [0.1, 1, 10, 100, 1000], 'gamma': [0.1, 1, 10, 100, 200, 500, 1000]}
@@ -163,7 +185,6 @@ def validate_rbf_svm():
 # Main Execution
 # ----------------------------------------------
 if __name__ == "__main__":
-    # Uncomment the section you want to run or run all
     print("# Running Linear SVM on Dataset 1")
     plot_linear_svm()
 
