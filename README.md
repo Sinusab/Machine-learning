@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 # 🧠 Machine Learning Projects
 
 This repository contains Python implementations of classic machine learning algorithms and applications. Each script demonstrates a specific concept such as regression, classification, clustering, or dimensionality reduction, using real-world or synthetic datasets.
