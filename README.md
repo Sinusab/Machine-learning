@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # 🧠 Machine Learning Projects
 
 This repository contains Python implementations of classic machine learning algorithms and applications. Each script demonstrates a specific concept such as regression, classification, clustering, or dimensionality reduction, using real-world or synthetic datasets.
@@ -74,3 +75,26 @@ pip install numpy matplotlib scipy scikit-learn pandas nltk
 💬 Contact
 For any questions or feedback, feel free to open an issue or reach out directly.
 
+=======
+# Machine Learning Algorithms
+
+This repository contains implementations of various machine learning algorithms and analyses.
+
+## Projects
+
+### Bias-Variance Analysis for Polynomial Regression
+A Python script that analyzes bias and variance in a polynomial regression model using learning and validation curves. The script trains a polynomial regression model on the `project6data1.mat` dataset, evaluates the effect of polynomial degree and regularization parameter (lambda), and visualizes the results.
+
+#### Dataset
+The script uses the dataset `project6data1.mat`, which is included in this repository.
+
+#### Requirements
+To run the script, you need the following Python libraries:
+- `numpy`
+- `matplotlib`
+- `scipy`
+
+Install them using pip:
+```bash
+pip install numpy matplotlib scipy
+>>>>>>> 551b6e2e54a272b79f7624f9ae7fcdbd7dd9dc63
